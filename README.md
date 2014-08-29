@@ -1,12 +1,20 @@
 SwitchWindow
 ============
 
-An OSX-only Sublime Text 2 plugin for switching between open windows without having to open the Window menu.
+A Sublime Text 3 plugin for switching between open windows without having to open the Window menu.
 
-This plugin could be a lot simpler (and faster), but I ran into lots of problems trying to get it to work correctly on OSX.
-[This bug](http://www.sublimetext.com/forum/viewtopic.php?f=3&t=10691) led to a very ugly and platform-specific workaround.
+This plugin works around a [known issue](https://github.com/SublimeText/Issues/issues/444) with the API by using AppleScript. For that reason, it only works on OS X.
+
+On Mavericks, Sublime Text must be granted a permission to control windows. Open System Preferences, go to Security & Privacy, find Accessibility in the list, and make sure `Sublime Text` and `System Events` are both enabled.
 
 ### Install: ###
+
+Via Package Control:
+
+* Run `Package Control: Add Repository` command.
+* Enter the Git repository URL.
+
+Manually:
 
     # The path to Sublime Packages on OSX is usually /Users/{user}/Library/Application Support/Sublime Text 2/Packages/
     cd {SUBLIME_PACKAGES_PATH}
@@ -15,7 +23,6 @@ This plugin could be a lot simpler (and faster), but I ran into lots of problems
 ### Usage: ###
 
 The default key binding is `Command + Shift + .`.
-
 
 ### TODO: ###
 

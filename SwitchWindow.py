@@ -1,42 +1,64 @@
 import sublime, sublime_plugin
-import commands
 import os
+import os.path
 
 from subprocess import Popen, PIPE
 
 class SwitchWindowCommand(sublime_plugin.ApplicationCommand):
 
-  def script_path(self, script_name):
-    return os.path.join(sublime.packages_path(), 'SwitchWindow', script_name)
+  def _window_items(self):
+    child = Popen(['osascript', '-e',
+      'tell application "System Events" to tell process ' +
+      '"Sublime Text" to return name of every menu item ' +
+      'of menu 1 of menu bar item "Window" of menu bar 1'],
+      stdout = PIPE,
+      stderr = PIPE,
+      cwd = os.path.dirname(os.path.realpath(__file__)))
 
-  def window_items(self):
-    output = Popen([self.script_path('run_get_windows.sh')], stdout=PIPE)
-    f = open(self.script_path('open_windows.out'))
-    lines = f.readlines()
-    f.close()
+    output = child.stdout.read()
+    (s, err) = child.communicate()
+    if err:
+      return (err.decode('utf-8'), [])
+    else:
+      data = output.decode("utf-8")
+      items = [val for val in data.split(', ') if self._is_valid(val)]
+      return (None, items)
 
-    # A much better way to do it, that doesn't work:
-    # proc = Popen(['run_get_windows.sh'], stdout=PIPE)
-    # lines = proc.stdout.read()
+  def _switch_window(self, title):
+    sublime.set_timeout_async(lambda: self._switch_window_in_background(title), 0)
 
-    items = [val.decode('utf-8') for val in lines[0].split(',') if self.is_valid(val)]
-    return items
+  def _switch_window_in_background(self, title):
+    child = Popen(['osascript', '-e',
+      'tell application "System Events" to tell application ' +
+      'process "Sublime Text" to perform action "AXRaise" of ' +
+      '(first window whose name contains "%s")' % title],
+      stdout = PIPE,
+      stderr = PIPE,
+      cwd = os.path.dirname(os.path.realpath(__file__)))
 
-  def selected_window(self, index):
-    # The right way to do it, that doesn't work in OSX:
-    # window = sublime.windows()[index]
-    # window.focus_view(window.active_view())
+    child.stdout.read()
+    (_, err) = child.communicate()
+    if err:
+      sublime.error_message(err.decode('utf-8'))
 
-    if index != -1:
-      i = index - len(self.window_items())
-      output = Popen([self.script_path('set_window.sh'), str(i)], stdout=PIPE)
-
-  def is_valid(self, val):
-    invalid = ['Minimize', 'Minimize All', 'Zoom', 'Zoom All', 'missing value', 'Bring All to Front', 'Arrange in Front']
-    if val.strip() in invalid:
-      return False
-    return True
+  def _is_valid(self, val):
+    return val.strip() not in [
+      'Minimize',
+      'Minimize All',
+      'Zoom',
+      'Zoom All',
+      'missing value',
+      'Bring All to Front',
+      'Arrange in Front',
+    ]
 
   def run(self):
-    sublime.active_window().show_quick_panel(self.window_items(), self.selected_window)
+    sublime.set_timeout_async(lambda: self.run_in_background(), 0)
 
+  def run_in_background(self):
+    (err, items) = self._window_items()
+    if err:
+      sublime.error_message(str(err))
+    else:
+      sublime.active_window().show_quick_panel(items,
+        lambda index: self._switch_window(items[index]) if index != -1 else None)
