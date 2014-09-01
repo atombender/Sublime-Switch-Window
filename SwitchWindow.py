@@ -21,7 +21,9 @@ class SwitchWindowCommand(sublime_plugin.ApplicationCommand):
       return (err.decode('utf-8'), [])
     else:
       data = output.decode("utf-8")
-      items = [val for val in data.split(', ') if self._is_valid(val)]
+      items = sorted(
+        [val.split(" — ")[-1] for val in data.split(', ') if self._is_valid(val)],
+        key = str.lower)
       return (None, items)
 
   def _switch_window(self, title):
